@@ -35,8 +35,3 @@ Exit codes
 * 1 for no match found
 * 2 for any other errors
 
-
-Future
-------
-
-* Wildcard * and **
