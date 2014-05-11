@@ -12,7 +12,7 @@ class-name is searched in the files provided. At least one file is required for 
 
 The format of the class name is like foo.bar.Baz where foo.bar is the package name and Baz is the class name.
 
-The files provided need to be valid jar, war or ear files that can be read.
+The files provided need to be valid jar, war, ear or zip files that can be read. Class files will be searched in nested locations as well. For example jar files in WEB-INF/lib of a war file will be searched. WEB-INF/classes will also be searched.
 
 If the class file exists in the file provided, the file is output.
 
@@ -40,4 +40,3 @@ Future
 ------
 
 * Wildcard * and **
-* Search for jars within jars. wars usually contain jars in WEB-INF/lib
