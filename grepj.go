@@ -3,19 +3,27 @@ package main
 import (
 	"archive/zip"
 	"bytes"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
-const version = "2.0"
+const version = "2.1"
 
 var extensions = []string{"jar", "war", "ear"}
 
 func errLog(msg string) {
-	fmt.Fprintf(os.Stderr, msg)
+	fmt.Fprintln(os.Stderr, msg)
+}
+
+func debugLog(msg string) {
+	if debugFlag {
+		fmt.Fprintln(os.Stdout, "debug: "+msg)
+	}
 }
 
 func processZipReader(reader *zip.Reader, searchPatterns []string, class string, path string) (error, found bool) {
@@ -28,6 +36,7 @@ func processZipReader(reader *zip.Reader, searchPatterns []string, class string,
 		}
 		for _, extension := range extensions {
 			if strings.HasSuffix(f.Name, extension) {
+				debugLog("Search in " + f.Name)
 				fReader, err := f.Open()
 				if err != nil {
 					errLog("Unable to open " + f.Name + " in " + path)
@@ -40,7 +49,7 @@ func processZipReader(reader *zip.Reader, searchPatterns []string, class string,
 					nestedReader, nestedErr := zip.NewReader(bytes.NewReader(b), int64(len(b)))
 					nestedPath := path + ">" + f.Name
 					if nestedErr != nil {
-						errLog(nestedPath + ": Invalid file\n")
+						errLog(nestedPath + ": Invalid file")
 					} else {
 						nestedError, nestedFound := processZipReader(nestedReader, searchPatterns, class, nestedPath)
 						error = error || nestedError
@@ -59,9 +68,10 @@ func processFiles(class string, fs []string) (error, found bool) {
 	searchPatterns := []string{canonicalClassName, "WEB-INF/classes/" + canonicalClassName}
 
 	for _, zipFileName := range fs {
+		debugLog("Search in " + zipFileName)
 		reader, err := zip.OpenReader(zipFileName)
 		if err != nil {
-			errLog(zipFileName + ": Invalid file\n")
+			errLog(zipFileName + ": Invalid file")
 			error = true
 		} else {
 			defer reader.Close()
@@ -73,20 +83,33 @@ func processFiles(class string, fs []string) (error, found bool) {
 	return
 }
 
+var versionFlag bool
+var debugFlag bool
+
+func init() {
+	flag.BoolVar(&versionFlag, "version", false, "Version information")
+	flag.BoolVar(&versionFlag, "v", false, "Version information (shorthand)")
+	flag.BoolVar(&debugFlag, "Xdebug", false, "Debug output")
+}
+
 func main() {
-	if len(os.Args) == 2 && (os.Args[1] == "--version" || os.Args[1] == "-version") {
+	flag.Parse()
+
+	if versionFlag {
 		fmt.Printf("grepj %s \n", version)
 		fmt.Printf("Written by Rahul Revo, see <https://github.com/rrevo/grepj>.\n")
 		os.Exit(0)
 	}
-	if len(os.Args) < 3 {
+
+	if flag.NArg() < 2 {
 		fmt.Printf("usage: %s <class-name> <file 1> ... <file n> \n", filepath.Base(os.Args[0]))
 		fmt.Printf("          class-name is searched in the files provided\n")
 		os.Exit(2)
 	}
 
-	class := os.Args[1]
-	fs := os.Args[2:]
+	otherArgs := flag.Args()
+	class := otherArgs[0]
+	fs := otherArgs[1:]
 
 	error, found := processFiles(class, fs)
 	exit := 0
@@ -96,5 +119,6 @@ func main() {
 		// Not found exit code is 1
 		exit = 1
 	}
+	debugLog("Exit Code - " + strconv.Itoa(exit))
 	os.Exit(exit)
 }
