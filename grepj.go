@@ -42,13 +42,13 @@ func processZipReader(reader *zip.Reader, searchPatterns []string, class string,
 					errLog("Unable to open " + f.Name + " in " + path)
 				} else {
 					defer fReader.Close()
-					b, errB := ioutil.ReadAll(fReader)
-					if errB != nil {
+					b, err := ioutil.ReadAll(fReader)
+					if err != nil {
 						errLog("Error reading " + f.Name + " in " + path)
 					}
-					nestedReader, nestedErr := zip.NewReader(bytes.NewReader(b), int64(len(b)))
+					nestedReader, err := zip.NewReader(bytes.NewReader(b), int64(len(b)))
 					nestedPath := path + ">" + f.Name
-					if nestedErr != nil {
+					if err != nil {
 						errLog(nestedPath + ": Invalid file")
 					} else {
 						nestedError, nestedFound := processZipReader(nestedReader, searchPatterns, class, nestedPath)
